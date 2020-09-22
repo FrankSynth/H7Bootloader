@@ -1,0 +1,878 @@
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 1
+
+
+   1              		.cpu cortex-m7
+   2              		.eabi_attribute 28, 1
+   3              		.eabi_attribute 20, 1
+   4              		.eabi_attribute 21, 1
+   5              		.eabi_attribute 23, 3
+   6              		.eabi_attribute 24, 1
+   7              		.eabi_attribute 25, 1
+   8              		.eabi_attribute 26, 1
+   9              		.eabi_attribute 30, 1
+  10              		.eabi_attribute 34, 1
+  11              		.eabi_attribute 18, 4
+  12              		.file	"eth.c"
+  13              		.text
+  14              	.Ltext0:
+  15              		.cfi_sections	.debug_frame
+  16              		.section	.text.MX_ETH_Init,"ax",%progbits
+  17              		.align	1
+  18              		.global	MX_ETH_Init
+  19              		.arch armv7e-m
+  20              		.syntax unified
+  21              		.thumb
+  22              		.thumb_func
+  23              		.fpu fpv5-d16
+  25              	MX_ETH_Init:
+  26              	.LFB141:
+  27              		.file 1 "Src/eth.c"
+   1:Src/eth.c     **** /**
+   2:Src/eth.c     ****   ******************************************************************************
+   3:Src/eth.c     ****   * File Name          : ETH.c
+   4:Src/eth.c     ****   * Description        : This file provides code for the configuration
+   5:Src/eth.c     ****   *                      of the ETH instances.
+   6:Src/eth.c     ****   ******************************************************************************
+   7:Src/eth.c     ****   * @attention
+   8:Src/eth.c     ****   *
+   9:Src/eth.c     ****   * <h2><center>&copy; Copyright (c) 2020 STMicroelectronics.
+  10:Src/eth.c     ****   * All rights reserved.</center></h2>
+  11:Src/eth.c     ****   *
+  12:Src/eth.c     ****   * This software component is licensed by ST under Ultimate Liberty license
+  13:Src/eth.c     ****   * SLA0044, the "License"; You may not use this file except in compliance with
+  14:Src/eth.c     ****   * the License. You may obtain a copy of the License at:
+  15:Src/eth.c     ****   *                             www.st.com/SLA0044
+  16:Src/eth.c     ****   *
+  17:Src/eth.c     ****   ******************************************************************************
+  18:Src/eth.c     ****   */
+  19:Src/eth.c     **** 
+  20:Src/eth.c     **** /* Includes ------------------------------------------------------------------*/
+  21:Src/eth.c     **** #include "eth.h"
+  22:Src/eth.c     **** 
+  23:Src/eth.c     **** #if defined ( __ICCARM__ ) /*!< IAR Compiler */
+  24:Src/eth.c     **** 
+  25:Src/eth.c     **** #pragma location=0x30040000
+  26:Src/eth.c     **** ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
+  27:Src/eth.c     **** #pragma location=0x30040060
+  28:Src/eth.c     **** ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
+  29:Src/eth.c     **** #pragma location=0x30040200
+  30:Src/eth.c     **** uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet Receive Buffers */
+  31:Src/eth.c     **** 
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 2
+
+
+  32:Src/eth.c     **** #elif defined ( __CC_ARM )  /* MDK ARM Compiler */
+  33:Src/eth.c     **** 
+  34:Src/eth.c     **** __attribute__((at(0x30040000))) ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx D
+  35:Src/eth.c     **** __attribute__((at(0x30040060))) ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx D
+  36:Src/eth.c     **** __attribute__((at(0x30040200))) uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE]; /* Ethernet 
+  37:Src/eth.c     **** 
+  38:Src/eth.c     **** #elif defined ( __GNUC__ ) /* GNU Compiler */
+  39:Src/eth.c     **** 
+  40:Src/eth.c     **** ETH_DMADescTypeDef DMARxDscrTab[ETH_RX_DESC_CNT] __attribute__((section(".RxDecripSection"))); /* E
+  41:Src/eth.c     **** ETH_DMADescTypeDef DMATxDscrTab[ETH_TX_DESC_CNT] __attribute__((section(".TxDecripSection")));   /*
+  42:Src/eth.c     **** uint8_t Rx_Buff[ETH_RX_DESC_CNT][ETH_MAX_PACKET_SIZE] __attribute__((section(".RxArraySection"))); 
+  43:Src/eth.c     **** 
+  44:Src/eth.c     **** #endif
+  45:Src/eth.c     **** 
+  46:Src/eth.c     **** ETH_TxPacketConfig TxConfig;
+  47:Src/eth.c     **** 
+  48:Src/eth.c     **** /* USER CODE BEGIN 0 */
+  49:Src/eth.c     **** 
+  50:Src/eth.c     **** /* USER CODE END 0 */
+  51:Src/eth.c     **** 
+  52:Src/eth.c     **** ETH_HandleTypeDef heth;
+  53:Src/eth.c     **** 
+  54:Src/eth.c     **** /* ETH init function */
+  55:Src/eth.c     **** void MX_ETH_Init(void)
+  56:Src/eth.c     **** {
+  28              		.loc 1 56 1 view -0
+  29              		.cfi_startproc
+  30              		@ args = 0, pretend = 0, frame = 0
+  31              		@ frame_needed = 0, uses_anonymous_args = 0
+  32 0000 10B5     		push	{r4, lr}
+  33              	.LCFI0:
+  34              		.cfi_def_cfa_offset 8
+  35              		.cfi_offset 4, -8
+  36              		.cfi_offset 14, -4
+  57:Src/eth.c     **** 
+  58:Src/eth.c     ****   heth.Instance = ETH;
+  37              		.loc 1 58 3 view .LVU1
+  38              		.loc 1 58 17 is_stmt 0 view .LVU2
+  39 0002 1748     		ldr	r0, .L5
+  40 0004 174B     		ldr	r3, .L5+4
+  41 0006 0360     		str	r3, [r0]
+  59:Src/eth.c     ****   heth.Init.MACAddr[0] =   0x00;
+  42              		.loc 1 59 3 is_stmt 1 view .LVU3
+  43              		.loc 1 59 12 is_stmt 0 view .LVU4
+  44 0008 4268     		ldr	r2, [r0, #4]
+  45              		.loc 1 59 24 view .LVU5
+  46 000a 0023     		movs	r3, #0
+  47 000c 1370     		strb	r3, [r2]
+  60:Src/eth.c     ****   heth.Init.MACAddr[1] =   0x80;
+  48              		.loc 1 60 3 is_stmt 1 view .LVU6
+  49              		.loc 1 60 12 is_stmt 0 view .LVU7
+  50 000e 4268     		ldr	r2, [r0, #4]
+  51              		.loc 1 60 24 view .LVU8
+  52 0010 8021     		movs	r1, #128
+  53 0012 5170     		strb	r1, [r2, #1]
+  61:Src/eth.c     ****   heth.Init.MACAddr[2] =   0xE1;
+  54              		.loc 1 61 3 is_stmt 1 view .LVU9
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 3
+
+
+  55              		.loc 1 61 12 is_stmt 0 view .LVU10
+  56 0014 4268     		ldr	r2, [r0, #4]
+  57              		.loc 1 61 24 view .LVU11
+  58 0016 E121     		movs	r1, #225
+  59 0018 9170     		strb	r1, [r2, #2]
+  62:Src/eth.c     ****   heth.Init.MACAddr[3] =   0x00;
+  60              		.loc 1 62 3 is_stmt 1 view .LVU12
+  61              		.loc 1 62 12 is_stmt 0 view .LVU13
+  62 001a 4268     		ldr	r2, [r0, #4]
+  63              		.loc 1 62 24 view .LVU14
+  64 001c D370     		strb	r3, [r2, #3]
+  63:Src/eth.c     ****   heth.Init.MACAddr[4] =   0x00;
+  65              		.loc 1 63 3 is_stmt 1 view .LVU15
+  66              		.loc 1 63 12 is_stmt 0 view .LVU16
+  67 001e 4268     		ldr	r2, [r0, #4]
+  68              		.loc 1 63 24 view .LVU17
+  69 0020 1371     		strb	r3, [r2, #4]
+  64:Src/eth.c     ****   heth.Init.MACAddr[5] =   0x00;
+  70              		.loc 1 64 3 is_stmt 1 view .LVU18
+  71              		.loc 1 64 12 is_stmt 0 view .LVU19
+  72 0022 4268     		ldr	r2, [r0, #4]
+  73              		.loc 1 64 24 view .LVU20
+  74 0024 5371     		strb	r3, [r2, #5]
+  65:Src/eth.c     ****   heth.Init.MediaInterface = HAL_ETH_RMII_MODE;
+  75              		.loc 1 65 3 is_stmt 1 view .LVU21
+  76              		.loc 1 65 28 is_stmt 0 view .LVU22
+  77 0026 0123     		movs	r3, #1
+  78 0028 0372     		strb	r3, [r0, #8]
+  66:Src/eth.c     ****   heth.Init.TxDesc = DMATxDscrTab;
+  79              		.loc 1 66 3 is_stmt 1 view .LVU23
+  80              		.loc 1 66 20 is_stmt 0 view .LVU24
+  81 002a 0F4B     		ldr	r3, .L5+8
+  82 002c C360     		str	r3, [r0, #12]
+  67:Src/eth.c     ****   heth.Init.RxDesc = DMARxDscrTab;
+  83              		.loc 1 67 3 is_stmt 1 view .LVU25
+  84              		.loc 1 67 20 is_stmt 0 view .LVU26
+  85 002e 0F4B     		ldr	r3, .L5+12
+  86 0030 0361     		str	r3, [r0, #16]
+  68:Src/eth.c     ****   heth.Init.RxBuffLen = 1524;
+  87              		.loc 1 68 3 is_stmt 1 view .LVU27
+  88              		.loc 1 68 23 is_stmt 0 view .LVU28
+  89 0032 40F2F453 		movw	r3, #1524
+  90 0036 4361     		str	r3, [r0, #20]
+  69:Src/eth.c     **** 
+  70:Src/eth.c     ****   /* USER CODE BEGIN MACADDRESS */
+  71:Src/eth.c     **** 
+  72:Src/eth.c     ****   /* USER CODE END MACADDRESS */
+  73:Src/eth.c     **** 
+  74:Src/eth.c     ****   if (HAL_ETH_Init(&heth) != HAL_OK)
+  91              		.loc 1 74 3 is_stmt 1 view .LVU29
+  92              		.loc 1 74 7 is_stmt 0 view .LVU30
+  93 0038 FFF7FEFF 		bl	HAL_ETH_Init
+  94              	.LVL0:
+  95              		.loc 1 74 6 view .LVU31
+  96 003c 60B9     		cbnz	r0, .L4
+  97              	.L2:
+  75:Src/eth.c     ****   {
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 4
+
+
+  76:Src/eth.c     ****     Error_Handler();
+  77:Src/eth.c     ****   }
+  78:Src/eth.c     **** 
+  79:Src/eth.c     ****   memset(&TxConfig, 0 , sizeof(ETH_TxPacketConfig));
+  98              		.loc 1 79 3 is_stmt 1 view .LVU32
+  99 003e 0C4C     		ldr	r4, .L5+16
+ 100 0040 3022     		movs	r2, #48
+ 101 0042 0021     		movs	r1, #0
+ 102 0044 2046     		mov	r0, r4
+ 103 0046 FFF7FEFF 		bl	memset
+ 104              	.LVL1:
+  80:Src/eth.c     ****   TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
+ 105              		.loc 1 80 3 view .LVU33
+ 106              		.loc 1 80 23 is_stmt 0 view .LVU34
+ 107 004a 2123     		movs	r3, #33
+ 108 004c 44F8043C 		str	r3, [r4, #-4]
+  81:Src/eth.c     ****   TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
+ 109              		.loc 1 81 3 is_stmt 1 view .LVU35
+ 110              		.loc 1 81 25 is_stmt 0 view .LVU36
+ 111 0050 4FF44033 		mov	r3, #196608
+ 112 0054 2361     		str	r3, [r4, #16]
+  82:Src/eth.c     ****   TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT;
+ 113              		.loc 1 82 3 is_stmt 1 view .LVU37
+  83:Src/eth.c     **** 
+  84:Src/eth.c     **** }
+ 114              		.loc 1 84 1 is_stmt 0 view .LVU38
+ 115 0056 10BD     		pop	{r4, pc}
+ 116              	.L4:
+  76:Src/eth.c     ****   }
+ 117              		.loc 1 76 5 is_stmt 1 view .LVU39
+ 118 0058 FFF7FEFF 		bl	Error_Handler
+ 119              	.LVL2:
+ 120 005c EFE7     		b	.L2
+ 121              	.L6:
+ 122 005e 00BF     		.align	2
+ 123              	.L5:
+ 124 0060 00000000 		.word	heth
+ 125 0064 00800240 		.word	1073905664
+ 126 0068 00000000 		.word	.LANCHOR0
+ 127 006c 00000000 		.word	.LANCHOR1
+ 128 0070 04000000 		.word	TxConfig+4
+ 129              		.cfi_endproc
+ 130              	.LFE141:
+ 132              		.section	.text.HAL_ETH_MspInit,"ax",%progbits
+ 133              		.align	1
+ 134              		.global	HAL_ETH_MspInit
+ 135              		.syntax unified
+ 136              		.thumb
+ 137              		.thumb_func
+ 138              		.fpu fpv5-d16
+ 140              	HAL_ETH_MspInit:
+ 141              	.LVL3:
+ 142              	.LFB142:
+  85:Src/eth.c     **** 
+  86:Src/eth.c     **** void HAL_ETH_MspInit(ETH_HandleTypeDef* ethHandle)
+  87:Src/eth.c     **** {
+ 143              		.loc 1 87 1 view -0
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 5
+
+
+ 144              		.cfi_startproc
+ 145              		@ args = 0, pretend = 0, frame = 48
+ 146              		@ frame_needed = 0, uses_anonymous_args = 0
+ 147              		.loc 1 87 1 is_stmt 0 view .LVU41
+ 148 0000 70B5     		push	{r4, r5, r6, lr}
+ 149              	.LCFI1:
+ 150              		.cfi_def_cfa_offset 16
+ 151              		.cfi_offset 4, -16
+ 152              		.cfi_offset 5, -12
+ 153              		.cfi_offset 6, -8
+ 154              		.cfi_offset 14, -4
+ 155 0002 8CB0     		sub	sp, sp, #48
+ 156              	.LCFI2:
+ 157              		.cfi_def_cfa_offset 64
+  88:Src/eth.c     **** 
+  89:Src/eth.c     ****   GPIO_InitTypeDef GPIO_InitStruct = {0};
+ 158              		.loc 1 89 3 is_stmt 1 view .LVU42
+ 159              		.loc 1 89 20 is_stmt 0 view .LVU43
+ 160 0004 0023     		movs	r3, #0
+ 161 0006 0793     		str	r3, [sp, #28]
+ 162 0008 0893     		str	r3, [sp, #32]
+ 163 000a 0993     		str	r3, [sp, #36]
+ 164 000c 0A93     		str	r3, [sp, #40]
+ 165 000e 0B93     		str	r3, [sp, #44]
+  90:Src/eth.c     ****   if(ethHandle->Instance==ETH)
+ 166              		.loc 1 90 3 is_stmt 1 view .LVU44
+ 167              		.loc 1 90 15 is_stmt 0 view .LVU45
+ 168 0010 0268     		ldr	r2, [r0]
+ 169              		.loc 1 90 5 view .LVU46
+ 170 0012 444B     		ldr	r3, .L11
+ 171 0014 9A42     		cmp	r2, r3
+ 172 0016 01D0     		beq	.L10
+ 173              	.LVL4:
+ 174              	.L7:
+  91:Src/eth.c     ****   {
+  92:Src/eth.c     ****   /* USER CODE BEGIN ETH_MspInit 0 */
+  93:Src/eth.c     **** 
+  94:Src/eth.c     ****   /* USER CODE END ETH_MspInit 0 */
+  95:Src/eth.c     ****     /* ETH clock enable */
+  96:Src/eth.c     ****     __HAL_RCC_ETH1MAC_CLK_ENABLE();
+  97:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+  98:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+  99:Src/eth.c     **** 
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOC_CLK_ENABLE();
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 103:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 104:Src/eth.c     ****     /**ETH GPIO Configuration
+ 105:Src/eth.c     ****     PC1     ------> ETH_MDC
+ 106:Src/eth.c     ****     PA1     ------> ETH_REF_CLK
+ 107:Src/eth.c     ****     PA2     ------> ETH_MDIO
+ 108:Src/eth.c     ****     PA7     ------> ETH_CRS_DV
+ 109:Src/eth.c     ****     PC4     ------> ETH_RXD0
+ 110:Src/eth.c     ****     PC5     ------> ETH_RXD1
+ 111:Src/eth.c     ****     PB13     ------> ETH_TXD1
+ 112:Src/eth.c     ****     PG11     ------> ETH_TX_EN
+ 113:Src/eth.c     ****     PG13     ------> ETH_TXD0
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 6
+
+
+ 114:Src/eth.c     ****     */
+ 115:Src/eth.c     ****     GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5;
+ 116:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 117:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 118:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 119:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 120:Src/eth.c     ****     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+ 121:Src/eth.c     **** 
+ 122:Src/eth.c     ****     GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_7;
+ 123:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 124:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 125:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 126:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 127:Src/eth.c     ****     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+ 128:Src/eth.c     **** 
+ 129:Src/eth.c     ****     GPIO_InitStruct.Pin = GPIO_PIN_13;
+ 130:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 131:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 132:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 133:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 134:Src/eth.c     ****     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ 135:Src/eth.c     **** 
+ 136:Src/eth.c     ****     GPIO_InitStruct.Pin = GPIO_PIN_11|GPIO_PIN_13;
+ 137:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 138:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 139:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 140:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 141:Src/eth.c     ****     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+ 142:Src/eth.c     **** 
+ 143:Src/eth.c     ****   /* USER CODE BEGIN ETH_MspInit 1 */
+ 144:Src/eth.c     **** 
+ 145:Src/eth.c     ****   /* USER CODE END ETH_MspInit 1 */
+ 146:Src/eth.c     ****   }
+ 147:Src/eth.c     **** }
+ 175              		.loc 1 147 1 view .LVU47
+ 176 0018 0CB0     		add	sp, sp, #48
+ 177              	.LCFI3:
+ 178              		.cfi_remember_state
+ 179              		.cfi_def_cfa_offset 16
+ 180              		@ sp needed
+ 181 001a 70BD     		pop	{r4, r5, r6, pc}
+ 182              	.LVL5:
+ 183              	.L10:
+ 184              	.LCFI4:
+ 185              		.cfi_restore_state
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ 186              		.loc 1 96 5 is_stmt 1 view .LVU48
+ 187              	.LBB2:
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ 188              		.loc 1 96 5 view .LVU49
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ 189              		.loc 1 96 5 view .LVU50
+ 190 001c 424B     		ldr	r3, .L11+4
+ 191 001e D3F8D820 		ldr	r2, [r3, #216]
+ 192 0022 42F40042 		orr	r2, r2, #32768
+ 193 0026 C3F8D820 		str	r2, [r3, #216]
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 7
+
+
+ 194              		.loc 1 96 5 view .LVU51
+ 195 002a D3F8D820 		ldr	r2, [r3, #216]
+ 196 002e 02F40042 		and	r2, r2, #32768
+ 197 0032 0092     		str	r2, [sp]
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ 198              		.loc 1 96 5 view .LVU52
+ 199 0034 009A     		ldr	r2, [sp]
+ 200              	.LBE2:
+  96:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_ENABLE();
+ 201              		.loc 1 96 5 view .LVU53
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 202              		.loc 1 97 5 view .LVU54
+ 203              	.LBB3:
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 204              		.loc 1 97 5 view .LVU55
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 205              		.loc 1 97 5 view .LVU56
+ 206 0036 D3F8D820 		ldr	r2, [r3, #216]
+ 207 003a 42F48032 		orr	r2, r2, #65536
+ 208 003e C3F8D820 		str	r2, [r3, #216]
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 209              		.loc 1 97 5 view .LVU57
+ 210 0042 D3F8D820 		ldr	r2, [r3, #216]
+ 211 0046 02F48032 		and	r2, r2, #65536
+ 212 004a 0192     		str	r2, [sp, #4]
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 213              		.loc 1 97 5 view .LVU58
+ 214 004c 019A     		ldr	r2, [sp, #4]
+ 215              	.LBE3:
+  97:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_ENABLE();
+ 216              		.loc 1 97 5 view .LVU59
+  98:Src/eth.c     **** 
+ 217              		.loc 1 98 5 view .LVU60
+ 218              	.LBB4:
+  98:Src/eth.c     **** 
+ 219              		.loc 1 98 5 view .LVU61
+  98:Src/eth.c     **** 
+ 220              		.loc 1 98 5 view .LVU62
+ 221 004e D3F8D820 		ldr	r2, [r3, #216]
+ 222 0052 42F40032 		orr	r2, r2, #131072
+ 223 0056 C3F8D820 		str	r2, [r3, #216]
+  98:Src/eth.c     **** 
+ 224              		.loc 1 98 5 view .LVU63
+ 225 005a D3F8D820 		ldr	r2, [r3, #216]
+ 226 005e 02F40032 		and	r2, r2, #131072
+ 227 0062 0292     		str	r2, [sp, #8]
+  98:Src/eth.c     **** 
+ 228              		.loc 1 98 5 view .LVU64
+ 229 0064 029A     		ldr	r2, [sp, #8]
+ 230              	.LBE4:
+  98:Src/eth.c     **** 
+ 231              		.loc 1 98 5 view .LVU65
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 232              		.loc 1 100 5 view .LVU66
+ 233              	.LBB5:
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 234              		.loc 1 100 5 view .LVU67
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 8
+
+
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 235              		.loc 1 100 5 view .LVU68
+ 236 0066 D3F8E020 		ldr	r2, [r3, #224]
+ 237 006a 42F00402 		orr	r2, r2, #4
+ 238 006e C3F8E020 		str	r2, [r3, #224]
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 239              		.loc 1 100 5 view .LVU69
+ 240 0072 D3F8E020 		ldr	r2, [r3, #224]
+ 241 0076 02F00402 		and	r2, r2, #4
+ 242 007a 0392     		str	r2, [sp, #12]
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 243              		.loc 1 100 5 view .LVU70
+ 244 007c 039A     		ldr	r2, [sp, #12]
+ 245              	.LBE5:
+ 100:Src/eth.c     ****     __HAL_RCC_GPIOA_CLK_ENABLE();
+ 246              		.loc 1 100 5 view .LVU71
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 247              		.loc 1 101 5 view .LVU72
+ 248              	.LBB6:
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 249              		.loc 1 101 5 view .LVU73
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 250              		.loc 1 101 5 view .LVU74
+ 251 007e D3F8E020 		ldr	r2, [r3, #224]
+ 252 0082 42F00102 		orr	r2, r2, #1
+ 253 0086 C3F8E020 		str	r2, [r3, #224]
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 254              		.loc 1 101 5 view .LVU75
+ 255 008a D3F8E020 		ldr	r2, [r3, #224]
+ 256 008e 02F00102 		and	r2, r2, #1
+ 257 0092 0492     		str	r2, [sp, #16]
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 258              		.loc 1 101 5 view .LVU76
+ 259 0094 049A     		ldr	r2, [sp, #16]
+ 260              	.LBE6:
+ 101:Src/eth.c     ****     __HAL_RCC_GPIOB_CLK_ENABLE();
+ 261              		.loc 1 101 5 view .LVU77
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 262              		.loc 1 102 5 view .LVU78
+ 263              	.LBB7:
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 264              		.loc 1 102 5 view .LVU79
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 265              		.loc 1 102 5 view .LVU80
+ 266 0096 D3F8E020 		ldr	r2, [r3, #224]
+ 267 009a 42F00202 		orr	r2, r2, #2
+ 268 009e C3F8E020 		str	r2, [r3, #224]
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 269              		.loc 1 102 5 view .LVU81
+ 270 00a2 D3F8E020 		ldr	r2, [r3, #224]
+ 271 00a6 02F00202 		and	r2, r2, #2
+ 272 00aa 0592     		str	r2, [sp, #20]
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ 273              		.loc 1 102 5 view .LVU82
+ 274 00ac 059A     		ldr	r2, [sp, #20]
+ 275              	.LBE7:
+ 102:Src/eth.c     ****     __HAL_RCC_GPIOG_CLK_ENABLE();
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 9
+
+
+ 276              		.loc 1 102 5 view .LVU83
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 277              		.loc 1 103 5 view .LVU84
+ 278              	.LBB8:
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 279              		.loc 1 103 5 view .LVU85
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 280              		.loc 1 103 5 view .LVU86
+ 281 00ae D3F8E020 		ldr	r2, [r3, #224]
+ 282 00b2 42F04002 		orr	r2, r2, #64
+ 283 00b6 C3F8E020 		str	r2, [r3, #224]
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 284              		.loc 1 103 5 view .LVU87
+ 285 00ba D3F8E030 		ldr	r3, [r3, #224]
+ 286 00be 03F04003 		and	r3, r3, #64
+ 287 00c2 0693     		str	r3, [sp, #24]
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 288              		.loc 1 103 5 view .LVU88
+ 289 00c4 069B     		ldr	r3, [sp, #24]
+ 290              	.LBE8:
+ 103:Src/eth.c     ****     /**ETH GPIO Configuration
+ 291              		.loc 1 103 5 view .LVU89
+ 115:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 292              		.loc 1 115 5 view .LVU90
+ 115:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 293              		.loc 1 115 25 is_stmt 0 view .LVU91
+ 294 00c6 3223     		movs	r3, #50
+ 295 00c8 0793     		str	r3, [sp, #28]
+ 116:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 296              		.loc 1 116 5 is_stmt 1 view .LVU92
+ 116:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 297              		.loc 1 116 26 is_stmt 0 view .LVU93
+ 298 00ca 0226     		movs	r6, #2
+ 299 00cc 0896     		str	r6, [sp, #32]
+ 117:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 300              		.loc 1 117 5 is_stmt 1 view .LVU94
+ 117:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 301              		.loc 1 117 26 is_stmt 0 view .LVU95
+ 302 00ce 0024     		movs	r4, #0
+ 303 00d0 0994     		str	r4, [sp, #36]
+ 118:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 304              		.loc 1 118 5 is_stmt 1 view .LVU96
+ 118:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 305              		.loc 1 118 27 is_stmt 0 view .LVU97
+ 306 00d2 0A94     		str	r4, [sp, #40]
+ 119:Src/eth.c     ****     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+ 307              		.loc 1 119 5 is_stmt 1 view .LVU98
+ 119:Src/eth.c     ****     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+ 308              		.loc 1 119 31 is_stmt 0 view .LVU99
+ 309 00d4 0B25     		movs	r5, #11
+ 310 00d6 0B95     		str	r5, [sp, #44]
+ 120:Src/eth.c     **** 
+ 311              		.loc 1 120 5 is_stmt 1 view .LVU100
+ 312 00d8 07A9     		add	r1, sp, #28
+ 313 00da 1448     		ldr	r0, .L11+8
+ 314              	.LVL6:
+ 120:Src/eth.c     **** 
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 10
+
+
+ 315              		.loc 1 120 5 is_stmt 0 view .LVU101
+ 316 00dc FFF7FEFF 		bl	HAL_GPIO_Init
+ 317              	.LVL7:
+ 122:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 318              		.loc 1 122 5 is_stmt 1 view .LVU102
+ 122:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 319              		.loc 1 122 25 is_stmt 0 view .LVU103
+ 320 00e0 8623     		movs	r3, #134
+ 321 00e2 0793     		str	r3, [sp, #28]
+ 123:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 322              		.loc 1 123 5 is_stmt 1 view .LVU104
+ 123:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 323              		.loc 1 123 26 is_stmt 0 view .LVU105
+ 324 00e4 0896     		str	r6, [sp, #32]
+ 124:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 325              		.loc 1 124 5 is_stmt 1 view .LVU106
+ 124:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 326              		.loc 1 124 26 is_stmt 0 view .LVU107
+ 327 00e6 0994     		str	r4, [sp, #36]
+ 125:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 328              		.loc 1 125 5 is_stmt 1 view .LVU108
+ 125:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 329              		.loc 1 125 27 is_stmt 0 view .LVU109
+ 330 00e8 0A94     		str	r4, [sp, #40]
+ 126:Src/eth.c     ****     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+ 331              		.loc 1 126 5 is_stmt 1 view .LVU110
+ 126:Src/eth.c     ****     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+ 332              		.loc 1 126 31 is_stmt 0 view .LVU111
+ 333 00ea 0B95     		str	r5, [sp, #44]
+ 127:Src/eth.c     **** 
+ 334              		.loc 1 127 5 is_stmt 1 view .LVU112
+ 335 00ec 07A9     		add	r1, sp, #28
+ 336 00ee 1048     		ldr	r0, .L11+12
+ 337 00f0 FFF7FEFF 		bl	HAL_GPIO_Init
+ 338              	.LVL8:
+ 129:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 339              		.loc 1 129 5 view .LVU113
+ 129:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 340              		.loc 1 129 25 is_stmt 0 view .LVU114
+ 341 00f4 4FF40053 		mov	r3, #8192
+ 342 00f8 0793     		str	r3, [sp, #28]
+ 130:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 343              		.loc 1 130 5 is_stmt 1 view .LVU115
+ 130:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 344              		.loc 1 130 26 is_stmt 0 view .LVU116
+ 345 00fa 0896     		str	r6, [sp, #32]
+ 131:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 346              		.loc 1 131 5 is_stmt 1 view .LVU117
+ 131:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 347              		.loc 1 131 26 is_stmt 0 view .LVU118
+ 348 00fc 0994     		str	r4, [sp, #36]
+ 132:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 349              		.loc 1 132 5 is_stmt 1 view .LVU119
+ 132:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 350              		.loc 1 132 27 is_stmt 0 view .LVU120
+ 351 00fe 0A94     		str	r4, [sp, #40]
+ 133:Src/eth.c     ****     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 11
+
+
+ 352              		.loc 1 133 5 is_stmt 1 view .LVU121
+ 133:Src/eth.c     ****     HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+ 353              		.loc 1 133 31 is_stmt 0 view .LVU122
+ 354 0100 0B95     		str	r5, [sp, #44]
+ 134:Src/eth.c     **** 
+ 355              		.loc 1 134 5 is_stmt 1 view .LVU123
+ 356 0102 07A9     		add	r1, sp, #28
+ 357 0104 0B48     		ldr	r0, .L11+16
+ 358 0106 FFF7FEFF 		bl	HAL_GPIO_Init
+ 359              	.LVL9:
+ 136:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 360              		.loc 1 136 5 view .LVU124
+ 136:Src/eth.c     ****     GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+ 361              		.loc 1 136 25 is_stmt 0 view .LVU125
+ 362 010a 4FF42053 		mov	r3, #10240
+ 363 010e 0793     		str	r3, [sp, #28]
+ 137:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 364              		.loc 1 137 5 is_stmt 1 view .LVU126
+ 137:Src/eth.c     ****     GPIO_InitStruct.Pull = GPIO_NOPULL;
+ 365              		.loc 1 137 26 is_stmt 0 view .LVU127
+ 366 0110 0896     		str	r6, [sp, #32]
+ 138:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 367              		.loc 1 138 5 is_stmt 1 view .LVU128
+ 138:Src/eth.c     ****     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+ 368              		.loc 1 138 26 is_stmt 0 view .LVU129
+ 369 0112 0994     		str	r4, [sp, #36]
+ 139:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 370              		.loc 1 139 5 is_stmt 1 view .LVU130
+ 139:Src/eth.c     ****     GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+ 371              		.loc 1 139 27 is_stmt 0 view .LVU131
+ 372 0114 0A94     		str	r4, [sp, #40]
+ 140:Src/eth.c     ****     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+ 373              		.loc 1 140 5 is_stmt 1 view .LVU132
+ 140:Src/eth.c     ****     HAL_GPIO_Init(GPIOG, &GPIO_InitStruct);
+ 374              		.loc 1 140 31 is_stmt 0 view .LVU133
+ 375 0116 0B95     		str	r5, [sp, #44]
+ 141:Src/eth.c     **** 
+ 376              		.loc 1 141 5 is_stmt 1 view .LVU134
+ 377 0118 07A9     		add	r1, sp, #28
+ 378 011a 0748     		ldr	r0, .L11+20
+ 379 011c FFF7FEFF 		bl	HAL_GPIO_Init
+ 380              	.LVL10:
+ 381              		.loc 1 147 1 is_stmt 0 view .LVU135
+ 382 0120 7AE7     		b	.L7
+ 383              	.L12:
+ 384 0122 00BF     		.align	2
+ 385              	.L11:
+ 386 0124 00800240 		.word	1073905664
+ 387 0128 00440258 		.word	1476543488
+ 388 012c 00080258 		.word	1476528128
+ 389 0130 00000258 		.word	1476526080
+ 390 0134 00040258 		.word	1476527104
+ 391 0138 00180258 		.word	1476532224
+ 392              		.cfi_endproc
+ 393              	.LFE142:
+ 395              		.section	.text.HAL_ETH_MspDeInit,"ax",%progbits
+ 396              		.align	1
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 12
+
+
+ 397              		.global	HAL_ETH_MspDeInit
+ 398              		.syntax unified
+ 399              		.thumb
+ 400              		.thumb_func
+ 401              		.fpu fpv5-d16
+ 403              	HAL_ETH_MspDeInit:
+ 404              	.LVL11:
+ 405              	.LFB143:
+ 148:Src/eth.c     **** 
+ 149:Src/eth.c     **** void HAL_ETH_MspDeInit(ETH_HandleTypeDef* ethHandle)
+ 150:Src/eth.c     **** {
+ 406              		.loc 1 150 1 is_stmt 1 view -0
+ 407              		.cfi_startproc
+ 408              		@ args = 0, pretend = 0, frame = 0
+ 409              		@ frame_needed = 0, uses_anonymous_args = 0
+ 410              		.loc 1 150 1 is_stmt 0 view .LVU137
+ 411 0000 08B5     		push	{r3, lr}
+ 412              	.LCFI5:
+ 413              		.cfi_def_cfa_offset 8
+ 414              		.cfi_offset 3, -8
+ 415              		.cfi_offset 14, -4
+ 151:Src/eth.c     **** 
+ 152:Src/eth.c     ****   if(ethHandle->Instance==ETH)
+ 416              		.loc 1 152 3 is_stmt 1 view .LVU138
+ 417              		.loc 1 152 15 is_stmt 0 view .LVU139
+ 418 0002 0268     		ldr	r2, [r0]
+ 419              		.loc 1 152 5 view .LVU140
+ 420 0004 144B     		ldr	r3, .L17
+ 421 0006 9A42     		cmp	r2, r3
+ 422 0008 00D0     		beq	.L16
+ 423              	.LVL12:
+ 424              	.L13:
+ 153:Src/eth.c     ****   {
+ 154:Src/eth.c     ****   /* USER CODE BEGIN ETH_MspDeInit 0 */
+ 155:Src/eth.c     **** 
+ 156:Src/eth.c     ****   /* USER CODE END ETH_MspDeInit 0 */
+ 157:Src/eth.c     ****     /* Peripheral clock disable */
+ 158:Src/eth.c     ****     __HAL_RCC_ETH1MAC_CLK_DISABLE();
+ 159:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_DISABLE();
+ 160:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_DISABLE();
+ 161:Src/eth.c     **** 
+ 162:Src/eth.c     ****     /**ETH GPIO Configuration
+ 163:Src/eth.c     ****     PC1     ------> ETH_MDC
+ 164:Src/eth.c     ****     PA1     ------> ETH_REF_CLK
+ 165:Src/eth.c     ****     PA2     ------> ETH_MDIO
+ 166:Src/eth.c     ****     PA7     ------> ETH_CRS_DV
+ 167:Src/eth.c     ****     PC4     ------> ETH_RXD0
+ 168:Src/eth.c     ****     PC5     ------> ETH_RXD1
+ 169:Src/eth.c     ****     PB13     ------> ETH_TXD1
+ 170:Src/eth.c     ****     PG11     ------> ETH_TX_EN
+ 171:Src/eth.c     ****     PG13     ------> ETH_TXD0
+ 172:Src/eth.c     ****     */
+ 173:Src/eth.c     ****     HAL_GPIO_DeInit(GPIOC, GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5);
+ 174:Src/eth.c     **** 
+ 175:Src/eth.c     ****     HAL_GPIO_DeInit(GPIOA, GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_7);
+ 176:Src/eth.c     **** 
+ 177:Src/eth.c     ****     HAL_GPIO_DeInit(GPIOB, GPIO_PIN_13);
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 13
+
+
+ 178:Src/eth.c     **** 
+ 179:Src/eth.c     ****     HAL_GPIO_DeInit(GPIOG, GPIO_PIN_11|GPIO_PIN_13);
+ 180:Src/eth.c     **** 
+ 181:Src/eth.c     ****   /* USER CODE BEGIN ETH_MspDeInit 1 */
+ 182:Src/eth.c     **** 
+ 183:Src/eth.c     ****   /* USER CODE END ETH_MspDeInit 1 */
+ 184:Src/eth.c     ****   }
+ 185:Src/eth.c     **** }
+ 425              		.loc 1 185 1 view .LVU141
+ 426 000a 08BD     		pop	{r3, pc}
+ 427              	.LVL13:
+ 428              	.L16:
+ 158:Src/eth.c     ****     __HAL_RCC_ETH1TX_CLK_DISABLE();
+ 429              		.loc 1 158 5 is_stmt 1 view .LVU142
+ 430 000c 134B     		ldr	r3, .L17+4
+ 431 000e D3F8D820 		ldr	r2, [r3, #216]
+ 432 0012 22F40042 		bic	r2, r2, #32768
+ 433 0016 C3F8D820 		str	r2, [r3, #216]
+ 159:Src/eth.c     ****     __HAL_RCC_ETH1RX_CLK_DISABLE();
+ 434              		.loc 1 159 5 view .LVU143
+ 435 001a D3F8D820 		ldr	r2, [r3, #216]
+ 436 001e 22F48032 		bic	r2, r2, #65536
+ 437 0022 C3F8D820 		str	r2, [r3, #216]
+ 160:Src/eth.c     **** 
+ 438              		.loc 1 160 5 view .LVU144
+ 439 0026 D3F8D820 		ldr	r2, [r3, #216]
+ 440 002a 22F40032 		bic	r2, r2, #131072
+ 441 002e C3F8D820 		str	r2, [r3, #216]
+ 173:Src/eth.c     **** 
+ 442              		.loc 1 173 5 view .LVU145
+ 443 0032 3221     		movs	r1, #50
+ 444 0034 0A48     		ldr	r0, .L17+8
+ 445              	.LVL14:
+ 173:Src/eth.c     **** 
+ 446              		.loc 1 173 5 is_stmt 0 view .LVU146
+ 447 0036 FFF7FEFF 		bl	HAL_GPIO_DeInit
+ 448              	.LVL15:
+ 175:Src/eth.c     **** 
+ 449              		.loc 1 175 5 is_stmt 1 view .LVU147
+ 450 003a 8621     		movs	r1, #134
+ 451 003c 0948     		ldr	r0, .L17+12
+ 452 003e FFF7FEFF 		bl	HAL_GPIO_DeInit
+ 453              	.LVL16:
+ 177:Src/eth.c     **** 
+ 454              		.loc 1 177 5 view .LVU148
+ 455 0042 4FF40051 		mov	r1, #8192
+ 456 0046 0848     		ldr	r0, .L17+16
+ 457 0048 FFF7FEFF 		bl	HAL_GPIO_DeInit
+ 458              	.LVL17:
+ 179:Src/eth.c     **** 
+ 459              		.loc 1 179 5 view .LVU149
+ 460 004c 4FF42051 		mov	r1, #10240
+ 461 0050 0648     		ldr	r0, .L17+20
+ 462 0052 FFF7FEFF 		bl	HAL_GPIO_DeInit
+ 463              	.LVL18:
+ 464              		.loc 1 185 1 is_stmt 0 view .LVU150
+ 465 0056 D8E7     		b	.L13
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 14
+
+
+ 466              	.L18:
+ 467              		.align	2
+ 468              	.L17:
+ 469 0058 00800240 		.word	1073905664
+ 470 005c 00440258 		.word	1476543488
+ 471 0060 00080258 		.word	1476528128
+ 472 0064 00000258 		.word	1476526080
+ 473 0068 00040258 		.word	1476527104
+ 474 006c 00180258 		.word	1476532224
+ 475              		.cfi_endproc
+ 476              	.LFE143:
+ 478              		.comm	heth,112,4
+ 479              		.comm	TxConfig,52,4
+ 480              		.global	Rx_Buff
+ 481              		.global	DMATxDscrTab
+ 482              		.global	DMARxDscrTab
+ 483              		.section	.RxArraySection,"aw"
+ 484              		.align	2
+ 487              	Rx_Buff:
+ 488 0000 00000000 		.space	6112
+ 488      00000000 
+ 488      00000000 
+ 488      00000000 
+ 488      00000000 
+ 489              		.section	.RxDecripSection,"aw"
+ 490              		.align	2
+ 491              		.set	.LANCHOR1,. + 0
+ 494              	DMARxDscrTab:
+ 495 0000 00000000 		.space	96
+ 495      00000000 
+ 495      00000000 
+ 495      00000000 
+ 495      00000000 
+ 496              		.section	.TxDecripSection,"aw"
+ 497              		.align	2
+ 498              		.set	.LANCHOR0,. + 0
+ 501              	DMATxDscrTab:
+ 502 0000 00000000 		.space	96
+ 502      00000000 
+ 502      00000000 
+ 502      00000000 
+ 502      00000000 
+ 503              		.text
+ 504              	.Letext0:
+ 505              		.file 2 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\inc
+ 506              		.file 3 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\inc
+ 507              		.file 4 "Drivers/CMSIS/Include/core_cm7.h"
+ 508              		.file 5 "Drivers/CMSIS/Device/ST/STM32H7xx/Include/system_stm32h7xx.h"
+ 509              		.file 6 "Drivers/CMSIS/Device/ST/STM32H7xx/Include/stm32h743xx.h"
+ 510              		.file 7 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\lib\\gcc\\arm-none
+ 511              		.file 8 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\inc
+ 512              		.file 9 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\inc
+ 513              		.file 10 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\in
+ 514              		.file 11 "c:\\program files (x86)\\gnu arm embedded toolchain\\9 2020-q2-update\\arm-none-eabi\\in
+ 515              		.file 12 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_def.h"
+ 516              		.file 13 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_gpio.h"
+ 517              		.file 14 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_eth.h"
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 15
+
+
+ 518              		.file 15 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_flash.h"
+ 519              		.file 16 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal_uart.h"
+ 520              		.file 17 "Drivers/STM32H7xx_HAL_Driver/Inc/stm32h7xx_hal.h"
+ 521              		.file 18 "Inc/eth.h"
+ 522              		.file 19 "Inc/main.h"
+ 523              		.file 20 "<built-in>"
+ARM GAS  C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s 			page 16
+
+
+DEFINED SYMBOLS
+                            *ABS*:00000000 eth.c
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:17     .text.MX_ETH_Init:00000000 $t
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:25     .text.MX_ETH_Init:00000000 MX_ETH_Init
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:124    .text.MX_ETH_Init:00000060 $d
+                            *COM*:00000070 heth
+                            *COM*:00000034 TxConfig
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:133    .text.HAL_ETH_MspInit:00000000 $t
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:140    .text.HAL_ETH_MspInit:00000000 HAL_ETH_MspInit
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:386    .text.HAL_ETH_MspInit:00000124 $d
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:396    .text.HAL_ETH_MspDeInit:00000000 $t
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:403    .text.HAL_ETH_MspDeInit:00000000 HAL_ETH_MspDeInit
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:469    .text.HAL_ETH_MspDeInit:00000058 $d
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:487    .RxArraySection:00000000 Rx_Buff
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:501    .TxDecripSection:00000000 DMATxDscrTab
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:494    .RxDecripSection:00000000 DMARxDscrTab
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:484    .RxArraySection:00000000 $d
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:490    .RxDecripSection:00000000 $d
+C:\Users\lukas\AppData\Local\Temp\ccQnbdNF.s:497    .TxDecripSection:00000000 $d
+
+UNDEFINED SYMBOLS
+HAL_ETH_Init
+memset
+Error_Handler
+HAL_GPIO_Init
+HAL_GPIO_DeInit
